@@ -1,0 +1,152 @@
+#include <bits/stdc++.h>
+
+using i64 = long long;
+using u64 = unsigned long long;
+using u32 = unsigned int;
+ 
+using i128 = __int128;
+using u128 = unsigned __int128;
+
+template<typename T = int>
+class FHQTreap {
+private:
+    struct Node {
+        T key{};
+        int ls = 0, rs = 0;
+        int siz = 0;
+        u32 pri = 0;
+    };
+
+    std::vector<Node> tr;
+    std::mt19937 rng;
+    int root = 0, tot = 0;
+
+    void UP(int p) {
+        tr[p].siz = tr[tr[p].ls].siz + tr[tr[p].rs].siz + 1;
+    }
+
+    int newNode(const T& x) {
+        ++tot;
+        tr[tot].key = x;
+        tr[tot].siz = 1;
+        tr[tot].pri = rng();
+        tr[tot].ls = tr[tot].rs = 0;
+        return tot;
+    }
+
+    void split(int p, const T& x, int& l, int& r) {
+        if(!p) {
+            l = r = 0;
+            return;
+        }
+        if(tr[p].key <= x) {
+            l = p;
+            split(tr[p].rs, x, tr[p].rs, r);
+        }
+        else {
+            r = p;
+            split(tr[p].ls, x, l, tr[p].ls);
+        }
+        UP(p);
+    }
+
+    int merge(int l, int r) {
+        if(!l || !r) return l | r;
+        if(tr[l].pri > tr[r].pri) {
+            tr[l].rs = merge(tr[l].rs, r);
+            UP(l);
+            return l;
+        }
+        else {
+            tr[r].ls = merge(l, tr[r].ls);
+            UP(r);
+            return r;
+        }
+    }
+
+public:
+    explicit FHQTreap(int n) 
+        : tr(n + 1),
+          rng(std::chrono::steady_clock::now().time_since_epoch().count()) {}
+    
+    int siz() const {
+        return tr[root].siz;
+    }
+
+    void insert(const T& x) {
+        int l, r;
+        split(root, x, l, r);
+        root = merge(merge(l, newNode(x)), r);
+    }
+
+    void erase(const T& x) {
+        int l, m, r;
+        split(root, x, m, r);
+        split(m, x - 1, l, m);
+        if(m) m = merge(tr[m].ls, tr[m].rs);
+        root = merge(merge(l, m), r);
+    }
+
+    int rank(const T& x) const {
+        int p = root;
+        int ans = 0;
+        while(p) {
+            if(tr[p].key < x) {
+                ans += tr[tr[p].ls].siz + 1;
+                p = tr[p].rs;
+            }
+            else {
+                p = tr[p].ls;
+            }
+        }
+        return ans;
+    }
+
+    T kth(int k) const {
+        int p = root;
+        while(p) {
+            int lsiz = tr[tr[p].ls].siz;
+            if(k <= lsiz) {
+                p = tr[p].ls;
+            }
+            else if(k == lsiz + 1) {
+                return tr[p].key;
+            }
+            else {
+                k -= lsiz + 1;
+                p = tr[p].rs;
+            }
+        }
+        return T{};
+    }
+
+    T prev(const T& x) const {
+        int p = root;
+        T ans = std::numeric_limits<T>::lowest();
+        while(p) {
+            if(tr[p].key < x) {
+                ans = tr[p].key;
+                p = tr[p].rs;
+            }
+            else {
+                p = tr[p].ls;
+            }
+        }
+        return ans;
+    }
+
+    T next(const T& x) const {
+        int p = root;
+        T ans = std::numeric_limits<T>::max();
+        while(p) {
+            if(tr[p].key > x) {
+                ans = tr[p].key;
+                p = tr[p].ls;
+            }
+            else {
+                p = tr[p].rs;
+            }
+        }
+        return ans;
+    } 
+};
