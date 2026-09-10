@@ -1,0 +1,202 @@
+#include <bits/stdc++.h>
+
+using i64 = long long;
+using u64 = unsigned long long;
+using u32 = unsigned int;
+ 
+using i128 = __int128;
+using u128 = unsigned __int128;
+
+template<typename T = int> 
+class Splay {
+private:
+    struct Node {
+        T key{};
+        int ls = 0, rs = 0, fa = 0;
+        int siz = 0;
+    };
+
+    std::vector<Node> tr;
+    int root = 0, tot = 0;
+
+    void UP(int p) {
+        tr[p].siz = tr[tr[p].ls].siz + tr[tr[p].rs].siz + 1;
+    }
+
+    int newNode(const T& x, int fa = 0) {
+        ++tot;
+        tr[tot].key = x;
+        tr[tot].fa = fa;
+        tr[tot].ls = tr[tot].rs = 0;
+        tr[tot].siz = 1;
+        return tot;
+    }
+
+    bool dir(int p) const {
+        return tr[tr[p].fa].rs == p;
+    }
+
+    void rotate(int p) {
+        int f = tr[p].fa;
+        int ff = tr[f].fa;
+        int d = dir(p);
+        if(ff) {
+            if(tr[ff].ls == f) tr[ff].ls = p;
+            else tr[ff].rs = p;
+        }
+        tr[p].fa = ff;
+        if(d) {
+            tr[f].rs = tr[p].ls;
+            if(tr[p].ls) tr[tr[p].ls].fa = f;
+            tr[p].ls = f;
+            tr[f].fa = p;
+        } 
+        else {
+            tr[f].ls = tr[p].rs;
+            if(tr[p].rs) tr[tr[p].rs].fa = f;
+            tr[p].rs = f;
+            tr[p].fa = p;
+        }
+
+        UP(f);
+        UP(p);
+    }
+
+    void splay(int p, int goal = 0) {
+        while(tr[p].fa != goal) {
+            int f = tr[p].fa;
+            int ff = tr[f].fa;
+            if(ff != goal) {
+                if(dir(p) == dir(f)) rotate(f);
+                else rotate(p);
+            }
+            rotate(p);
+        }
+        if(!goal) root = p;
+    }
+
+    int find(int k) const {
+        int p = root;
+        while(p) {
+            if(tr[tr[p].ls].siz + 1 == k) {
+                return p;
+            }
+            else if(tr[tr[p].ls].siz >= k) {
+                p = tr[p].ls;
+            }
+            else {
+                k -= tr[tr[p].ls].siz + 1;
+                i = tr[p].rs;
+            }
+        }
+        return 0;
+    }
+public:
+    explicit Splay(int n) : tr(n + 1) {}
+
+    int siz() const {
+        return tr[root].siz;
+    }
+
+    void insert(const T& x) {
+        int p = newNode(x);
+
+        if(!root) {
+            root = p;
+            return;
+        }
+
+        int f = 0, i = root;
+        while(i) {
+            f = i;
+            if(tr[i].key <= x) i = tr[i].rs;
+            else i = tr[i].ls;
+        }
+        if(tr[f].key <= x) tr[f].rs = p;
+        else tr[f].ls = p;
+        tr[p].fa = f;
+        splay(p, 0);
+    }
+
+    int rank(const T& x) {
+        int p = root, last = root;
+        int ans = 0;
+        while(p) {
+            last = p;
+            if(tr[p].key >= x) {
+                p = tr[p].ls;
+            }
+            else {
+                ans += tr[tr[p].ls].siz + 1;
+                p = tr[p].rs;
+            }
+        }
+        if(last) splay(last, 0);
+        return ans;
+    }
+
+    T kth(int k) {
+        int p = find(k);
+        if(!p) return T{};
+        splay(p, 0);
+        return tr[p].key;
+    }
+
+    T prev(const T& x) {
+        int p = root, last = root;
+        T ans = std::numeric_limits<T>::lowest();
+        while(p) {
+            last = p;
+            if(tr[p].key >= x) {
+                p = tr[p].ls;
+            }
+            else {
+                ans = std::max(ans, tr[p].key);
+                p = tr[p].rs;
+            }
+        }
+
+        if(last) splay(last, 0);
+        return ans;
+    }
+
+    T next(const T& x) {
+        int p = root, last = root;
+        T ans = std::numeric_limits<T>::max();
+        while(p) {
+            last = p;
+            if(tr[p].key <= x) {
+                p = tr[p].rs;
+            }
+            else {
+                ans = std::min(ans, tr[p].key);
+                p = tr[p].ls;
+            }
+        }
+        if(last) splay(last, 0);
+
+        return ans;
+    }
+
+    void erase(const T& x) {
+        int k = rank(x) + 1;
+        int p = find(k);
+        if(!p || tr[p].key != x) return;
+        splay(p, 0);
+        if(!tr[p].ls) {
+            root = tr[p].rs;
+        }
+        else if(!tr[p].rs) {
+            root = tr[p].ls;
+        }
+        else {
+            int q = find(k + 1);
+            splay(q, p);
+            tr[q].ls = tr[p].ls;
+            tr[tr[q].ls].fa = q;
+            UP(q);
+            root = q;
+        }
+        if(root) tr[root].fa = 0;
+    }
+};
