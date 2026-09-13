@@ -1,0 +1,56 @@
+struct Dinic {
+	struct edge {
+		int to, rev, cap;
+	};
+	int n;	
+	std::vector<std::vector<edge>> g;
+	std::vector<int> dep, cur;
+	Dinic(int n) : n(n), g(n + 1), dep(n + 1), cur(n + 1) {}
+	void addedge(int u, int v, int c) {
+		int ru = g[u].size(), rv = g[v].size();
+		g[u].push_back({v, rv, c});
+		g[v].push_back({u, ru, 0});
+	}
+	bool bfs(int s, int t) {
+		std::fill(dep.begin(), dep.end(), -1);
+		std::queue<int> q;
+		q.push(s);
+		dep[s] = 0;
+		while(!q.empty()) {
+			int u = q.front();
+			q.pop();
+			for(auto e : g[u]) {
+				if(e.cap > 0 && dep[e.to] == -1) {
+					dep[e.to] = dep[u] + 1;
+					q.push(e.to);
+				}
+			}
+		}
+		return dep[t] != -1;
+	}
+	int dfs(int u, int t, int flow) {
+		if(u == t) return flow;
+		for(int& i = cur[u]; i < g[u].size(); i ++) {
+			auto& e = g[u][i];
+			if(e.cap > 0 && dep[e.to] == dep[u] + 1) {
+				int f = dfs(e.to, t, std::min(flow, e.cap));
+				if(f) {
+					e.cap -= f;
+					g[e.to][e.rev].cap += f;
+					return f;
+				}
+			}
+		}
+		return 0;
+	}
+	int maxflow(int s, int t) {
+		int ans = 0;
+		while(bfs(s, t)) {
+			std::fill(cur.begin(), cur.end(), 0);
+			while(int f = dfs(s, t, inf)) {
+				ans += f;
+			}
+		}
+		return ans;
+	}
+};
