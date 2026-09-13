@@ -1,0 +1,47 @@
+struct EK {
+	struct edge {
+		int to, rev, cap;
+	};
+	int n;
+	std::vector<std::vector<edge>> g;
+	std::vector<int> pre, id;
+	EK(int n) : n(n), g(n + 1), pre(n + 1), id(n + 1) {}
+	void addedge(int u, int v, int c) {
+		int ru = g[u].size(), rv = g[v].size();
+		g[u].push_back({v, rv, c});
+		g[v].push_back({u, ru, 0});
+	}
+	int bfs(int s, int t) {
+		std::fill(pre.begin(), pre.end(), -1);
+		std::queue<int> q;
+		q.push(s);
+		pre[s] = s;
+		while(!q.empty()) {
+			int u = q.front();
+			q.pop();
+			for(int i = 0; i < g[u].size(); i ++) {
+				auto& e = g[u][i];
+				if(e.cap > 0 && pre[e.to] == -1) {
+					pre[e.to] = u;
+					id[e.to] = i;
+					q.push(e.to);
+					if(e.to == t) break;
+				}
+			}
+		}
+		if(pre[t] == -1) return 0;
+		int flow = inf;
+		for(int u = t; u != s; u = pre[u]) flow = std::min(flow, g[pre[u]][id[u]].cap);
+		for(int u = t; u != s; u = pre[u]) {
+			auto& e = g[pre[u]][id[u]];
+			e.cap -= flow;
+			g[u][e.rev].cap += flow;
+		}
+		return flow;
+	}
+	int maxflow(int s, int t) {
+		int ans = 0, f;
+		while((f = bfs(s, t))) ans += f;
+		return ans;
+	}
+};
