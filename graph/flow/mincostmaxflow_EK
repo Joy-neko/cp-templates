@@ -1,0 +1,58 @@
+//it just replaces bfs with spfa...
+
+struct MCMF {
+	struct edge {
+		int to, rev, cap, cost;
+	};
+	int n;
+	std::vector<std::vector<edge>> g;
+	std::vector<int> dis, pre, id, vis;
+	MCMF(int n) : n(n), g(n + 1), dis(n + 1), pre(n + 1), id(n + 1), vis(n + 1) {}
+	void addedge(int u, int v, int cap, int cost) {
+		int ru = g[u].size(), rv = g[v].size();
+		g[u].push_back({v, rv, cap, cost});
+		g[v].push_back({u, ru, 0, -cost});
+	}
+	bool spfa(int s, int t) {
+		std::fill(dis.begin(), dis.end(), inf);
+		std::fill(pre.begin(), pre.end(), -1);
+		std::fill(vis.begin(), vis.end(), 0);
+		std::queue<int> q;
+		q.push(s);
+		dis[s] = 0;
+		vis[s] = 1;
+		while(!q.empty()) {
+			int u = q.front();
+			q.pop();
+			vis[u] = 0;
+			for(int i = 0; i < g[u].size(); i ++) {
+				auto& e = g[u][i];
+				if(e.cap > 0 && dis[e.to] > dis[u] + e.cost) {
+					dis[e.to] = dis[u] + e.cost;
+					pre[e.to] = u;
+					id[e.to] = i;
+					if(!vis[e.to]) {
+						vis[e.to] = 1;
+						q.push(e.to);
+					}
+				}
+			}
+		}
+		return pre[t] != -1;
+	}
+	std::pair<int, int> mincostmaxflow(int s, int t) {
+		int flow = 0, cost = 0;
+		while(spfa(s, t)) {
+			int f = inf;
+			for(int u = t; u != s; u = pre[u]) f = std::min(f, g[pre[u]][id[u]].cap);
+			for(int u = t; u != s; u = pre[u]) {
+				auto& e = g[pre[u]][id[u]];
+				e.cap -= f;
+				g[u][e.rev].cap += f;
+			}
+			flow += f;
+			cost += f * dis[t];
+		}
+		return {flow, cost};
+	}
+};
